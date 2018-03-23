@@ -11,7 +11,6 @@ plan9git=git://github.com/madlambda/plan9port.git
 
 # Go configuration
 goversion=1.10
-gourl=https://dl.google.com/go/go$goversion.linux-amd64.tar.gz
 goroot=/usr/local/go
 GOPATH=$HOME/go
 
@@ -32,22 +31,27 @@ all:V: $deps
 
 # if plan9 directory exists just update and re-install
 # otherwise clone and install.
-plan9:V: $plan9
-$plan9:
+plan9:V:
 	if [ -d $plan9 ]; then
-		cd $plan9 && git pull origin master && ./INSTALL
+		cd $plan9 && git pull origin master
 	else
 		tmpdir=/tmp/$(basename $plan9)
 		git clone $plan9git $tmpdir
 		sudo mv $tmpdir $(dirname $plan9)
 		sudo chown -R $user.$user $plan9
-		cd $plan9 && ./INSTALL
+		cd $plan9
 	fi
+	./INSTALL
 
 # Install go if needed
 go:V: $goroot
-$goroot:
+$goroot: go$goversion
+
+# install specific go<version>
+go%:
+	gourl=https://dl.google.com/go/go$stem.linux-amd64.tar.gz
 	wget -c $gourl -O /tmp/go.tar.gz
+	sudo rm -rf $goroot
 	sudo tar xvf /tmp/go.tar.gz -C $(dirname $goroot)
 
 # update & install nash from master
@@ -75,7 +79,7 @@ $nashpath/init: $nashroot
 
 # update & install acmetools
 acmetools:V: $nashpath/lib/acme
-$nashpath/lib/acme: $nashpath/init $plan9
+$nashpath/lib/acme: $nashpath/init plan9
 	var libpath = $nashpath+"/lib"
 	var _, st <= test -d $libpath
 	if $st != "0" {
@@ -89,6 +93,5 @@ $nashpath/lib/acme: $nashpath/init $plan9
 		chdir("acme")
 		git pull origin master
 	}
-
 
 
